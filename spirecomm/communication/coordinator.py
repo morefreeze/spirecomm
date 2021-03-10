@@ -3,6 +3,7 @@ import queue
 import threading
 import json
 import collections
+import os
 
 from spirecomm.spire.game import Game
 from spirecomm.spire.screen import ScreenType
@@ -218,4 +219,55 @@ class Coordinator:
             return self.last_game_state.screen.victory
         else:
             return False
+
+    def climb_till_defeat(self, player_class, seed, run_name="Unnamed Run"):
+        """
+
+            :param player_class: the class to play
+            :type player_class: PlayerClass
+            :param seed: the alphanumeric seed to use
+            :type seed: str
+            :param run_name: The folder name of this run
+            :type run_name: str
+            :return: List of telemetry about games
+            :rtype: List
+        """
+        ascension_level = 0
+        while True:
+            # Quick and dirty grab of run files for a given ascension
+            # Brittle to starting from any location other than starting with ModTheSpire
+            game_path = os.getcwd()
+            mod_path = os.path.join(game_path, "../Mods/spirecomm")
+
+            print(game_path, mod_path)
+
+            # We are located in the SlayTheSpire directory by default
+            runs_path_relative = "runs/1_DEFECT"
+            runs_path = os.path.join(game_path, runs_path_relative)
+            run_files = os.listdir(runs_path)
+            run_files.sort()
+            last_run = run_files[-1]
+
+            local_runs_path = os.path.join(mod_path, "runs", run_name + "-" + seed)
+
+            try:
+                os.mkdir(os.path.join(mod_path, "runs"))
+                os.mkdir(local_runs_path)
+            except FileExistsError:
+                pass
+            victory = self.play_one_game(player_class, ascension_level, seed)
+
+            try:
+                with open(os.path.join(runs_path, last_run), "r") as source_data:
+                    with open(os.path.join(local_runs_path, last_run), "w") as dest_data:
+                        dest_data.write(source_data.read())
+            except OSError:
+                pass
+
+            if victory:
+                if ascension_level == 20:
+                    return True
+                ascension_level += 1
+            else:
+                return False
 
