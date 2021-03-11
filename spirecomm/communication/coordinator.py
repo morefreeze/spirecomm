@@ -219,3 +219,26 @@ class Coordinator:
         else:
             return False
 
+    def climb_till_defeat(self, player_class, seed, run_name="Unnamed Run"):
+        """
+            :param player_class: the class to play
+            :type player_class: PlayerClass
+            :param seed: the alphanumeric seed to use
+            :type seed: str
+            :param run_name: The folder name of this run
+            :type run_name: str
+            :return: List of telemetry about games
+            :rtype: List
+        """
+        ascension_level = 0
+        while True:
+            victory_list = []
+            victory = self.play_one_game(player_class, ascension_level, seed)
+            victory_list.append(victory)
+            if victory:
+                if ascension_level == 20:
+                    return victory_list
+                ascension_level += 1
+            else:
+                return victory_list
+
