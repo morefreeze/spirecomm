@@ -1,17 +1,9 @@
 import itertools
 import datetime
 import sys
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-=======
 import random
 import time
 import os
->>>>>>> Stashed changes
-=======
-import random
-import time
->>>>>>> 8c3cae8a3f11ae851ae8e30525126757edb61686
 
 from spirecomm.communication.coordinator import Coordinator
 from spirecomm.ai.agent import SimpleAgent
