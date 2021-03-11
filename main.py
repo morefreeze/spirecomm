@@ -1,20 +1,25 @@
 import itertools
 import datetime
 import sys
+<<<<<<< HEAD
 <<<<<<< Updated upstream
 =======
 import random
 import time
 import os
 >>>>>>> Stashed changes
+=======
+import random
+import time
+>>>>>>> 8c3cae8a3f11ae851ae8e30525126757edb61686
 
 from spirecomm.communication.coordinator import Coordinator
 from spirecomm.ai.agent import SimpleAgent
+from spirecomm.ai.randomAgent import RandomAgent
 from spirecomm.spire.character import PlayerClass
 
 
 if __name__ == "__main__":
-
     agent = SimpleAgent()
     coordinator = Coordinator()
     coordinator.signal_ready()
@@ -71,3 +76,4 @@ if __name__ == "__main__":
                         dest_data.write(source_data.read())
         except OSError:
             pass
+

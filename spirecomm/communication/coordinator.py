@@ -3,6 +3,7 @@ import queue
 import threading
 import json
 import collections
+import os
 
 from spirecomm.spire.game import Game
 from spirecomm.spire.screen import ScreenType
@@ -241,4 +242,5 @@ class Coordinator:
                 ascension_level += 1
             else:
                 return victory_list
+
 
