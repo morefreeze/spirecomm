@@ -8,15 +8,14 @@ import logging
 from spirecomm.communication.action import PlayCardAction
 
 from spirecomm.communication.coordinator import Coordinator
-from spirecomm.ai.agent import SimpleAgent
-from spirecomm.ai.randomAgent import RandomAgent
+from spirecomm.ai.simpleAgent import SimpleAgent
 from spirecomm.ai.nnAgent import NnAgent
 from spirecomm.spire.character import PlayerClass
 
 
 def main():
 	logging.basicConfig(filename='neuralNet.log', level=logging.DEBUG)
-	agent = NnAgent()
+	agent = SimpleAgent()
 	coordinator = Coordinator()
 	coordinator.signal_ready()
 	coordinator.register_command_error_callback(agent.handle_error)

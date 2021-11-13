@@ -1,5 +1,7 @@
 import time
 import random
+import logging
+from abc import ABCMeta, abstractmethod
 
 from spirecomm.spire.game import Game
 from spirecomm.spire.character import Intent, PlayerClass
@@ -9,7 +11,7 @@ from spirecomm.communication.action import *
 from spirecomm.ai.priorities import *
 
 
-class SimpleAgent:
+class Agent(metaclass = ABCMeta):
 
     def __init__(self, chosen_class=PlayerClass.THE_SILENT):
         self.game = Game()
@@ -22,6 +24,7 @@ class SimpleAgent:
         self.priorities = Priority()
         self.change_class(chosen_class)
 
+    @abstractmethod
     def change_class(self, new_class):
         self.chosen_class = new_class
         if self.chosen_class == PlayerClass.THE_SILENT:
@@ -37,33 +40,55 @@ class SimpleAgent:
         raise Exception(error)
 
     def get_next_action_in_game(self, game_state):
+        """Determine the next action to take based on the game state"""
         self.game = game_state
-        #time.sleep(0.07)
+        logging.info("Getting next game action")
+        logging.debug("Using state: " + str(game_state))
         if self.game.choice_available:
-            return self.handle_screen()
-        if self.game.proceed_available:
-            return ProceedAction()
-        if self.game.play_available:
-            if self.game.room_type == "MonsterRoomBoss" and len(self.game.get_real_potions()) > 0:
-                potion_action = self.use_next_potion()
-                if potion_action is not None:
-                    return potion_action
-            return self.get_play_card_action()
-        if self.game.end_available:
-            return EndTurnAction()
-        if self.game.cancel_available:
-            return CancelAction()
+            chosenAction = self.get_screen_action()
+        elif self.game.proceed_available:
+            chosenAction = ProceedAction()
+        elif self.game.play_available:
+            chosenAction = self.get_next_combat_action()
+        elif self.game.end_available:
+            chosenAction = EndTurnAction()
+        elif self.game.cancel_available:
+            chosenAction = CancelAction()
+
+        logging.error("Using next game action: " + str(chosenAction))
+        return chosenAction
+
+
+    def get_next_screen_action(self, game_state):
+        """Determine the next action for a selection screen"""
+        self.game = game_state
+        if self.game.screen_type == ScreenType.MAP:
+            return self.get_map_choice_action()
+        elif self.game.screen_type == ScreenType.REST:
+            return self.get_rest_action()
+        elif self.game.screen_type == ScreenType.CARD_REWARD:
+            return self.get_card_reward_action()
+        # Just use the base resolver for trivial actions    
+        return self.get_screen_action()
+
+    @abstractmethod
+    def get_next_combat_action(self):
+        if self.game.room_type == "MonsterRoomBoss" and len(self.game.get_real_potions()) > 0:
+            potion_action = self.__use_next_potion()
+            if potion_action is not None:
+                return potion_action
+        return self.__get_play_card_action()
 
     def get_next_action_out_of_game(self):
         return StartGameAction(self.chosen_class)
 
-    def is_monster_attacking(self):
+    def __is_monster_attacking(self):
         for monster in self.game.monsters:
             if monster.intent.is_attack() or monster.intent == Intent.NONE:
                 return True
         return False
 
-    def get_incoming_damage(self):
+    def __get_incoming_damage(self):
         incoming_damage = 0
         for monster in self.game.monsters:
             if not monster.is_gone and not monster.half_dead:
@@ -73,28 +98,28 @@ class SimpleAgent:
                     incoming_damage += 5 * self.game.act
         return incoming_damage
 
-    def get_low_hp_target(self):
+    def __get_low_hp_target(self):
         available_monsters = [monster for monster in self.game.monsters if monster.current_hp > 0 and not monster.half_dead and not monster.is_gone]
         best_monster = min(available_monsters, key=lambda x: x.current_hp)
         return best_monster
 
-    def get_high_hp_target(self):
+    def __get_high_hp_target(self):
         available_monsters = [monster for monster in self.game.monsters if monster.current_hp > 0 and not monster.half_dead and not monster.is_gone]
         best_monster = max(available_monsters, key=lambda x: x.current_hp)
         return best_monster
 
-    def many_monsters_alive(self):
+    def __many_monsters_alive(self):
         available_monsters = [monster for monster in self.game.monsters if monster.current_hp > 0 and not monster.half_dead and not monster.is_gone]
         return len(available_monsters) > 1
 
-    def get_play_card_action(self):
+    def __get_play_card_action(self):
         playable_cards = [card for card in self.game.hand if card.is_playable]
         zero_cost_cards = [card for card in playable_cards if card.cost == 0]
         zero_cost_attacks = [card for card in zero_cost_cards if card.type == spirecomm.spire.card.CardType.ATTACK]
         zero_cost_non_attacks = [card for card in zero_cost_cards if card.type != spirecomm.spire.card.CardType.ATTACK]
         nonzero_cost_cards = [card for card in playable_cards if card.cost != 0]
         aoe_cards = [card for card in playable_cards if self.priorities.is_card_aoe(card)]
-        if self.game.player.block > self.get_incoming_damage() - (self.game.act + 4):
+        if self.game.player.block > self.__get_incoming_damage() - (self.game.act + 4):
             offensive_cards = [card for card in nonzero_cost_cards if not self.priorities.is_card_defensive(card)]
             if len(offensive_cards) > 0:
                 nonzero_cost_cards = offensive_cards
@@ -106,7 +131,7 @@ class SimpleAgent:
             card_to_play = self.priorities.get_best_card_to_play(zero_cost_non_attacks)
         elif len(nonzero_cost_cards) > 0:
             card_to_play = self.priorities.get_best_card_to_play(nonzero_cost_cards)
-            if len(aoe_cards) > 0 and self.many_monsters_alive() and card_to_play.type == spirecomm.spire.card.CardType.ATTACK:
+            if len(aoe_cards) > 0 and self.__many_monsters_alive() and card_to_play.type == spirecomm.spire.card.CardType.ATTACK:
                 card_to_play = self.priorities.get_best_card_to_play(aoe_cards)
         elif len(zero_cost_attacks) > 0:
             card_to_play = self.priorities.get_best_card_to_play(zero_cost_attacks)
@@ -118,22 +143,54 @@ class SimpleAgent:
             if len(available_monsters) == 0:
                 return EndTurnAction()
             if card_to_play.type == spirecomm.spire.card.CardType.ATTACK:
-                target = self.get_low_hp_target()
+                target = self.__get_low_hp_target()
             else:
-                target = self.get_high_hp_target()
+                target = self.__get_high_hp_target()
             return PlayCardAction(card=card_to_play, target_monster=target)
         else:
             return PlayCardAction(card=card_to_play)
 
-    def use_next_potion(self):
+    def __use_next_potion(self):
         for potion in self.game.get_real_potions():
             if potion.can_use:
                 if potion.requires_target:
-                    return PotionAction(True, potion=potion, target_monster=self.get_low_hp_target())
+                    return PotionAction(True, potion=potion, target_monster=self.__get_low_hp_target())
                 else:
                     return PotionAction(True, potion=potion)
 
-    def handle_screen(self):
+    def __count_copies_in_deck(self, card):
+        count = 0
+        for deck_card in self.game.deck:
+            if deck_card.card_id == card.card_id:
+                count += 1
+        return count
+
+    def __generate_map_route(self):
+        node_rewards = self.priorities.MAP_NODE_PRIORITIES.get(self.game.act)
+        best_rewards = {0: {node.x: node_rewards[node.symbol] for node in self.game.map.nodes[0].values()}}
+        best_parents = {0: {node.x: 0 for node in self.game.map.nodes[0].values()}}
+        min_reward = min(node_rewards.values())
+        map_height = max(self.game.map.nodes.keys())
+        for y in range(0, map_height):
+            best_rewards[y+1] = {node.x: min_reward * 20 for node in self.game.map.nodes[y+1].values()}
+            best_parents[y+1] = {node.x: -1 for node in self.game.map.nodes[y+1].values()}
+            for x in best_rewards[y]:
+                node = self.game.map.get_node(x, y)
+                best_node_reward = best_rewards[y][x]
+                for child in node.children:
+                    test_child_reward = best_node_reward + node_rewards[child.symbol]
+                    if test_child_reward > best_rewards[y+1][child.x]:
+                        best_rewards[y+1][child.x] = test_child_reward
+                        best_parents[y+1][child.x] = node.x
+        best_path = [0] * (map_height + 1)
+        best_path[map_height] = max(best_rewards[map_height].keys(), key=lambda x: best_rewards[map_height][x])
+        for y in range(map_height, 0, -1):
+            best_path[y - 1] = best_parents[y][best_path[y]]
+        self.map_route = best_path
+
+    @abstractmethod
+    def get_screen_action(self):
+        logging.debug("Calling get screen action for " + str(self.game.screen_type))
         if self.game.screen_type == ScreenType.EVENT:
             if self.game.screen.event_id in ["Vampires", "Masked Bandits", "Knowing Skull", "Ghosts", "Liars Game", "Golden Idol", "Drug Dealer", "The Library"]:
                 return ChooseAction(len(self.game.screen.options) - 1)
@@ -149,9 +206,9 @@ class SimpleAgent:
                 self.visited_shop = False
                 return ProceedAction()
         elif self.game.screen_type == ScreenType.REST:
-            return self.choose_rest_option()
+            return self.get_rest_action()
         elif self.game.screen_type == ScreenType.CARD_REWARD:
-            return self.choose_card_reward()
+            return self.get_card_reward_action()
         elif self.game.screen_type == ScreenType.COMBAT_REWARD:
             for reward_item in self.game.screen.rewards:
                 if reward_item.reward_type == RewardType.POTION and self.game.are_potions_full():
@@ -163,7 +220,7 @@ class SimpleAgent:
             self.skipped_cards = False
             return ProceedAction()
         elif self.game.screen_type == ScreenType.MAP:
-            return self.make_map_choice()
+            return self.get_map_choice_action()
         elif self.game.screen_type == ScreenType.BOSS_REWARD:
             relics = self.game.screen.relics
             best_boss_relic = self.priorities.get_best_boss_relic(relics)
@@ -196,7 +253,38 @@ class SimpleAgent:
         else:
             return ProceedAction()
 
-    def choose_rest_option(self):
+    @abstractmethod
+    def get_card_reward_action(self):
+        reward_cards = self.game.screen.cards
+        if self.game.screen.can_skip and not self.game.in_combat:
+            pickable_cards = [card for card in reward_cards if self.priorities.needs_more_copies(card, self.__count_copies_in_deck(card))]
+        else:
+            pickable_cards = reward_cards
+        if len(pickable_cards) > 0:
+            potential_pick = self.priorities.get_best_card(pickable_cards)
+            return CardRewardAction(potential_pick)
+        elif self.game.screen.can_bowl:
+            return CardRewardAction(bowl=True)
+        else:
+            self.skipped_cards = True
+            return CancelAction()
+
+    @abstractmethod
+    def get_map_choice_action(self):
+        if len(self.game.screen.next_nodes) > 0 and self.game.screen.next_nodes[0].y == 0:
+            self.__generate_map_route()
+            self.game.screen.current_node.y = -1
+        if self.game.screen.boss_available:
+            return ChooseMapBossAction()
+        chosen_x = self.map_route[self.game.screen.current_node.y + 1]
+        for choice in self.game.screen.next_nodes:
+            if choice.x == chosen_x:
+                return ChooseMapNodeAction(choice)
+        # This should never happen
+        return ChooseAction(0)
+
+    @abstractmethod
+    def get_rest_action(self):
         rest_options = self.game.screen.rest_options
         if len(rest_options) > 0 and not self.game.screen.has_rested:
             if RestOption.REST in rest_options and self.game.current_hp < self.game.max_hp / 2:
@@ -215,62 +303,3 @@ class SimpleAgent:
                 return ChooseAction(0)
         else:
             return ProceedAction()
-
-    def count_copies_in_deck(self, card):
-        count = 0
-        for deck_card in self.game.deck:
-            if deck_card.card_id == card.card_id:
-                count += 1
-        return count
-
-    def choose_card_reward(self):
-        reward_cards = self.game.screen.cards
-        if self.game.screen.can_skip and not self.game.in_combat:
-            pickable_cards = [card for card in reward_cards if self.priorities.needs_more_copies(card, self.count_copies_in_deck(card))]
-        else:
-            pickable_cards = reward_cards
-        if len(pickable_cards) > 0:
-            potential_pick = self.priorities.get_best_card(pickable_cards)
-            return CardRewardAction(potential_pick)
-        elif self.game.screen.can_bowl:
-            return CardRewardAction(bowl=True)
-        else:
-            self.skipped_cards = True
-            return CancelAction()
-
-    def generate_map_route(self):
-        node_rewards = self.priorities.MAP_NODE_PRIORITIES.get(self.game.act)
-        best_rewards = {0: {node.x: node_rewards[node.symbol] for node in self.game.map.nodes[0].values()}}
-        best_parents = {0: {node.x: 0 for node in self.game.map.nodes[0].values()}}
-        min_reward = min(node_rewards.values())
-        map_height = max(self.game.map.nodes.keys())
-        for y in range(0, map_height):
-            best_rewards[y+1] = {node.x: min_reward * 20 for node in self.game.map.nodes[y+1].values()}
-            best_parents[y+1] = {node.x: -1 for node in self.game.map.nodes[y+1].values()}
-            for x in best_rewards[y]:
-                node = self.game.map.get_node(x, y)
-                best_node_reward = best_rewards[y][x]
-                for child in node.children:
-                    test_child_reward = best_node_reward + node_rewards[child.symbol]
-                    if test_child_reward > best_rewards[y+1][child.x]:
-                        best_rewards[y+1][child.x] = test_child_reward
-                        best_parents[y+1][child.x] = node.x
-        best_path = [0] * (map_height + 1)
-        best_path[map_height] = max(best_rewards[map_height].keys(), key=lambda x: best_rewards[map_height][x])
-        for y in range(map_height, 0, -1):
-            best_path[y - 1] = best_parents[y][best_path[y]]
-        self.map_route = best_path
-
-    def make_map_choice(self):
-        if len(self.game.screen.next_nodes) > 0 and self.game.screen.next_nodes[0].y == 0:
-            self.generate_map_route()
-            self.game.screen.current_node.y = -1
-        if self.game.screen.boss_available:
-            return ChooseMapBossAction()
-        chosen_x = self.map_route[self.game.screen.current_node.y + 1]
-        for choice in self.game.screen.next_nodes:
-            if choice.x == chosen_x:
-                return ChooseMapNodeAction(choice)
-        # This should never happen
-        return ChooseAction(0)
-
