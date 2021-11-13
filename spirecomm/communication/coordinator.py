@@ -220,14 +220,12 @@ class Coordinator:
         else:
             return False
 
-    def climb_till_defeat(self, player_class, seed, run_name="Unnamed Run"):
+    def climb_till_defeat(self, player_class, seed):
         """
             :param player_class: the class to play
             :type player_class: PlayerClass
             :param seed: the alphanumeric seed to use
             :type seed: str
-            :param run_name: The folder name of this run
-            :type run_name: str
             :return: List of telemetry about games
             :rtype: List
         """
