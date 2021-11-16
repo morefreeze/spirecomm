@@ -24,19 +24,8 @@ class Agent(metaclass = ABCMeta):
         self.priorities = Priority()
         self.change_class(chosen_class)
 
-    @abstractmethod
-    def change_class(self, new_class):
-        self.chosen_class = new_class
-        if self.chosen_class == PlayerClass.THE_SILENT:
-            self.priorities = SilentPriority()
-        elif self.chosen_class == PlayerClass.IRONCLAD:
-            self.priorities = IroncladPriority()
-        elif self.chosen_class == PlayerClass.DEFECT:
-            self.priorities = DefectPowerPriority()
-        else:
-            self.priorities = random.choice(list(PlayerClass))
-
     def handle_error(self, error):
+        "Handle an error while running"
         raise Exception(error)
 
     def get_next_action_in_game(self, game_state):
@@ -54,39 +43,12 @@ class Agent(metaclass = ABCMeta):
             chosenAction = EndTurnAction()
         elif self.game.cancel_available:
             chosenAction = CancelAction()
-
         logging.error("Using next game action: " + str(chosenAction))
         return chosenAction
 
-
-    def get_next_screen_action(self, game_state):
-        """Determine the next action for a selection screen"""
-        self.game = game_state
-        if self.game.screen_type == ScreenType.MAP:
-            return self.get_map_choice_action()
-        elif self.game.screen_type == ScreenType.REST:
-            return self.get_rest_action()
-        elif self.game.screen_type == ScreenType.CARD_REWARD:
-            return self.get_card_reward_action()
-        # Just use the base resolver for trivial actions    
-        return self.get_screen_action()
-
-    @abstractmethod
-    def get_next_combat_action(self):
-        if self.game.room_type == "MonsterRoomBoss" and len(self.game.get_real_potions()) > 0:
-            potion_action = self.__use_next_potion()
-            if potion_action is not None:
-                return potion_action
-        return self.__get_play_card_action()
-
     def get_next_action_out_of_game(self):
+        """Return the StartGameAction"""
         return StartGameAction(self.chosen_class)
-
-    def __is_monster_attacking(self):
-        for monster in self.game.monsters:
-            if monster.intent.is_attack() or monster.intent == Intent.NONE:
-                return True
-        return False
 
     def __get_incoming_damage(self):
         incoming_damage = 0
@@ -303,3 +265,24 @@ class Agent(metaclass = ABCMeta):
                 return ChooseAction(0)
         else:
             return ProceedAction()
+
+    @abstractmethod
+    def get_next_combat_action(self):
+        """Get the next action while in combat"""
+        if self.game.room_type == "MonsterRoomBoss" and len(self.game.get_real_potions()) > 0:
+            potion_action = self.__use_next_potion()
+            if potion_action is not None:
+                return potion_action
+        return self.__get_play_card_action()
+
+    @abstractmethod
+    def change_class(self, new_class):
+        self.chosen_class = new_class
+        if self.chosen_class == PlayerClass.THE_SILENT:
+            self.priorities = SilentPriority()
+        elif self.chosen_class == PlayerClass.IRONCLAD:
+            self.priorities = IroncladPriority()
+        elif self.chosen_class == PlayerClass.DEFECT:
+            self.priorities = DefectPowerPriority()
+        else:
+            self.priorities = random.choice(list(PlayerClass))
