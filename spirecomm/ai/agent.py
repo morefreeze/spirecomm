@@ -14,7 +14,7 @@ from spirecomm.ai.priorities import *
 class Agent(metaclass = ABCMeta):
 
     def __init__(self, chosen_class=PlayerClass.THE_SILENT):
-        self.game = Game()
+        self.game: Game = Game()
         self.errors = 0
         self.choose_good_card = False
         self.skipped_cards = False
@@ -43,7 +43,7 @@ class Agent(metaclass = ABCMeta):
             chosenAction = EndTurnAction()
         elif self.game.cancel_available:
             chosenAction = CancelAction()
-        logging.error("Using next game action: " + str(chosenAction))
+        logging.info("Using next game action: " + str(chosenAction))
         return chosenAction
 
     def get_next_action_out_of_game(self):
@@ -172,21 +172,11 @@ class Agent(metaclass = ABCMeta):
         elif self.game.screen_type == ScreenType.CARD_REWARD:
             return self.get_card_reward_action()
         elif self.game.screen_type == ScreenType.COMBAT_REWARD:
-            for reward_item in self.game.screen.rewards:
-                if reward_item.reward_type == RewardType.POTION and self.game.are_potions_full():
-                    continue
-                elif reward_item.reward_type == RewardType.CARD and self.skipped_cards:
-                    continue
-                else:
-                    return CombatRewardAction(reward_item)
-            self.skipped_cards = False
-            return ProceedAction()
+            return self.get_next_combat_reward_action()
         elif self.game.screen_type == ScreenType.MAP:
             return self.get_map_choice_action()
         elif self.game.screen_type == ScreenType.BOSS_REWARD:
-            relics = self.game.screen.relics
-            best_boss_relic = self.priorities.get_best_boss_relic(relics)
-            return BossRewardAction(best_boss_relic)
+            return self.get_next_boss_reward_action()
         elif self.game.screen_type == ScreenType.SHOP_SCREEN:
             if self.game.screen.purge_available and self.game.gold >= self.game.screen.purge_cost:
                 return ChooseAction(name="purge")
@@ -274,6 +264,26 @@ class Agent(metaclass = ABCMeta):
             if potion_action is not None:
                 return potion_action
         return self.__get_play_card_action()
+
+    @abstractmethod
+    def get_next_boss_reward_action(self):
+        """Get the next reward on the boss relic screen"""
+        relics = self.game.screen.relics
+        best_boss_relic = self.priorities.get_best_boss_relic(relics)
+        return BossRewardAction(best_boss_relic)
+
+    @abstractmethod
+    def get_next_combat_reward_action(self):
+        """Get the next reward on the post-combat screen"""
+        for reward_item in self.game.screen.rewards:
+            if reward_item.reward_type == RewardType.POTION and self.game.are_potions_full():
+                continue
+            elif reward_item.reward_type == RewardType.CARD and self.skipped_cards:
+                continue
+            else:
+                return CombatRewardAction(reward_item)
+        self.skipped_cards = False
+        return ProceedAction()
 
     @abstractmethod
     def change_class(self, new_class):

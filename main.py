@@ -16,7 +16,7 @@ from spirecomm.spire.character import PlayerClass
 
 def main():
 	logging.basicConfig(filename='neuralNet.log', level=logging.DEBUG)
-	agent: Agent = SimpleAgent()
+	agent: Agent = NnAgent()
 	coordinator = Coordinator()
 	coordinator.signal_ready()
 	coordinator.register_command_error_callback(agent.handle_error)

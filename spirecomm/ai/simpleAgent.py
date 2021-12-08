@@ -33,3 +33,8 @@ class SimpleAgent(Agent):
     def get_map_choice_action(self):
         return super().get_map_choice_action()
 
+    def get_next_combat_reward_action(self):
+        return super().get_next_combat_reward_action()
+
+    def get_next_boss_reward_action(self):
+        return super().get_next_boss_reward_action()
