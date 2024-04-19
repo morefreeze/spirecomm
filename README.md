@@ -13,6 +13,8 @@ The spirecomm package facilitates communicating with Slay the Spire through Comm
 
 - Python 3.5+
 - kivy, only for the example GUI for Communication Mod, found in utilities
+* [Model Access in Amazon Bedrock](https://us-east-1.console.aws.amazon.com/bedrock/home?region=us-east-1#/modelaccess). [Details here](https://docs.aws.amazon.com/bedrock/latest/userguide/model-access.html)
+
 
 ## Running the AI:
 
