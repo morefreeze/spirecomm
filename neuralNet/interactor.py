@@ -1,22 +1,20 @@
 import logging
 
-from spirecomm.spire.game import Game
-from spirecomm.communication.action import *
 from neuralNet.dataConverter import *
+from spirecomm.communication.action import *
+from spirecomm.spire.game import Game
+
 
 class NeuralNetInteractor:
 
-	def __init__(self):
-		pass
+    def __init__(self):
+        pass
 
-	def __run_combat_in_NN(self, nnCombatIpnut: str) -> str:
-		return ""
+    def __run_combat_in_NN(self, nnCombatIpnut: str) -> str:
+        # This is where you will run LLM
+        return ""
 
-	def run_combat(self, gameState: Game) -> Action:
-		readableState = game_state_to_NN_input(gameState)
+    def run_combat(self, gameState: Game, priorities) -> Action:
+        next_action = game_state_to_action(gameState, priorities)
 
-		nnOutput = self.__run_combat_in_NN(readableState)
-
-		return NN_output_to_action(nnOutput)
-
-	
+        return next_action
