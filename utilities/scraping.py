@@ -75,11 +75,11 @@ class Scraper():
             # Completely fine, that's what we wanted
             pass
         except Exception as e:
-            logging.error("Unable to create folder: " + folder_path)
+            logging.error(f"Unable to create folder e[{e}]: {folder_path}")
 
     def __create_file(self, file_path: str):
         try:
-            os.mknod(file_path)
+            # os.mknod(file_path)
             # Fill with empty dict to make things happy
             with open(file_path, 'w') as json_file:
                 json.dump(dict(), json_file)
@@ -87,7 +87,7 @@ class Scraper():
             # Completely fine, that's what we wanted
             pass
         except Exception as e:
-            logging.error("Unable to create file: " + file_path)
+            logging.error(f"Unable to create file e[{e}]: {file_path}")
 
     def __initialize_objects(self, root_folder_path: str, class_to_load: PlayerClass):
         self.__create_folder(root_folder_path)

@@ -1,0 +1,8 @@
+{
+    "python.analysis.autoFormatStrings": true,
+    "black-formatter.args": [
+        "--line-length",
+        "128"
+    ],
+    "editor.defaultFormatter": "ms-python.black-formatter"
+}
