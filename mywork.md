@@ -50,3 +50,22 @@ botocore.exceptions.NoCredentialsError: Unable to locate credentials
 
 I'm going to try to connect local llm, but it cost about 10 seconds to take one action and some
 decision is obviously wrong(like end turn even player has some actions).
+
+### add scrap event
+
+I need fix missing event.
+```json
+"screen_state":{
+    "event_id":"Wheel of Change",
+    "body_text":"You come upon a dapper looking, cheery gremlin.  \"It\u0027s time to spin the wheel! Are you R E A D Y ? Of course you are!\"",
+    "options":[
+    {
+        "choice_index":0,
+        "disabled":false,
+        "text":"[Play]",
+        "label":"Play"
+    }
+    ],
+    "event_name":"Wheel of Change"
+}
+```

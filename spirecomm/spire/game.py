@@ -5,6 +5,7 @@ import spirecomm.spire.card
 import spirecomm.spire.character
 import spirecomm.spire.map
 import spirecomm.spire.potion
+import spirecomm.spire.event
 import spirecomm.spire.screen
 
 
@@ -40,6 +41,7 @@ class Game:
         self.in_combat = False
         self.player = None
         self.monsters = []
+        self.events = []
         self.draw_pile = []
         self.discard_pile = []
         self.exhaust_pile = []

@@ -5,6 +5,7 @@ import json
 from spirecomm.spire.game import Game
 from spirecomm.spire.relic import Relic
 from spirecomm.spire.potion import Potion
+from spirecomm.spire.event import Event
 from spirecomm.spire.card import Card
 from spirecomm.spire.character import Intent, Monster, PlayerClass
 from spirecomm.spire.screen import RestOption
@@ -51,7 +52,7 @@ class Scraper():
     root_folder_path = ""
     card_data_manager = None
     relic_data_manager = None
-    potion_data_mananger = None
+    potion_data_manager = None
     monster_data_manager = None
     event_data_manager = None
     CARD_FILE_NAME = "cards.json"
@@ -162,5 +163,14 @@ class Scraper():
             potion: Potion
             for potion in gameState.potions:
                 self.potion_data_manager.attempt_update(potion.potion_id)
+        except Exception as e:
+            logging.error("Ran into error while scraping for potions:" + str(e))
+
+    def __scrape_for_events(self, gameState: Game):
+        logging.debug("Scraping event data")
+        try:
+            event: Event
+            for event in gameState.events:
+                self.event_data_manager.attempt_update(event.event_id)
         except Exception as e:
             logging.error("Ran into error while scraping for potions:" + str(e))

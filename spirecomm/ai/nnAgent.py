@@ -26,11 +26,12 @@ class NnAgent(Agent):
         return super().change_class(chosen_class)
 
     def get_next_combat_action(self):
-        # self.scraper.scrape_state(self.game)
+        self.scraper.scrape_state(self.game)
         game_state = self.game
         priorities = self.priorities
-        # return super().get_next_combat_action()
-        # Auto use potiosn on boss for now...
+        return super().get_next_combat_action()
+    
+        # Auto use potions on boss for now...
         if (
             self.game.room_type == "MonsterRoomBoss"
             and len(self.game.get_real_potions()) > 0
