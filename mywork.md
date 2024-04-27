@@ -31,3 +31,22 @@ I simply comment this line to solve it and no idea why it need create file befor
 ```log
 Failed to connect to proxy URL: "http://127.0.0.1:7890"
 ```
+
+I add code that disable os env variable
+
+```py
+import os
+os.environ['http_proxy'] = ''
+os.environ['https_proxy'] = ''
+```
+
+### No credentials
+
+No surprise I got this because the code invoke another boto3 service which belongs author.
+
+```log
+botocore.exceptions.NoCredentialsError: Unable to locate credentials
+```
+
+I'm going to try to connect local llm, but it cost about 10 seconds to take one action and some
+decision is obviously wrong(like end turn even player has some actions).

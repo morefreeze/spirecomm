@@ -2,6 +2,14 @@ import json
 import logging
 
 import boto3
+from bs4 import ResultSet
+from click import prompt
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="http://localhost:11434/v1",
+    api_key="ollama",  # required, but unused
+)
 
 import spirecomm.spire.card
 from spirecomm.ai.priorities import *
@@ -9,14 +17,30 @@ from spirecomm.communication.action import *
 from spirecomm.spire.character import Intent, PlayerClass
 from spirecomm.spire.game import Game
 
-# Setup bedrock
-bedrock_runtime = boto3.client(
-    service_name="bedrock-runtime",
-    region_name="us-east-1",
-)
+# import os
+# os.environ['http_proxy'] = ''
+# os.environ['https_proxy'] = ''
+# # Setup bedrock
+# bedrock_runtime = boto3.client(
+#     service_name="bedrock-runtime",
+#     region_name="us-east-1",
+# )
 
 
-def call_claude_haiku(system_prompt, prompt):
+def call_local_llm(system_prompt, user_prompt):
+    response = client.chat.completions.create(
+        model="llama2",
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+    )
+    results = response.choices[0].message.content
+    logging.debug(f"results: {results}")
+    return results
+
+
+def call_claude_haiku(system_prompt, user_prompt):
 
     prompt_config = {
         "anthropic_version": "bedrock-2023-05-31",
@@ -26,7 +50,7 @@ def call_claude_haiku(system_prompt, prompt):
             {
                 "role": "user",
                 "content": [
-                    {"type": "text", "text": prompt},
+                    {"type": "text", "text": user_prompt},
                 ],
             }
         ],
@@ -38,9 +62,7 @@ def call_claude_haiku(system_prompt, prompt):
     accept = "application/json"
     contentType = "application/json"
 
-    response = bedrock_runtime.invoke_model(
-        body=body, modelId=modelId, accept=accept, contentType=contentType
-    )
+    response = bedrock_runtime.invoke_model(body=body, modelId=modelId, accept=accept, contentType=contentType)
     response_body = json.loads(response.get("body").read())
 
     results = response_body.get("content")[0].get("text")
@@ -262,23 +284,13 @@ def game_state_to_action(gameState: Game, priorities: Priority) -> str:
     # TODO will turn to something for a prompt
     playable_cards = [card for card in gameState.hand if card.is_playable]
     zero_cost_cards = [card for card in playable_cards if card.cost == 0]
-    zero_cost_attacks = [
-        card
-        for card in zero_cost_cards
-        if card.type == spirecomm.spire.card.CardType.ATTACK
-    ]
-    zero_cost_non_attacks = [
-        card
-        for card in zero_cost_cards
-        if card.type != spirecomm.spire.card.CardType.ATTACK
-    ]
+    zero_cost_attacks = [card for card in zero_cost_cards if card.type == spirecomm.spire.card.CardType.ATTACK]
+    zero_cost_non_attacks = [card for card in zero_cost_cards if card.type != spirecomm.spire.card.CardType.ATTACK]
     nonzero_cost_cards = [card for card in playable_cards if card.cost != 0]
     aoe_cards = [card for card in playable_cards if priorities.is_card_aoe(card)]
 
     available_monsters = [
-        monster
-        for monster in gameState.monsters
-        if monster.current_hp > 0 and not monster.half_dead and not monster.is_gone
+        monster for monster in gameState.monsters if monster.current_hp > 0 and not monster.half_dead and not monster.is_gone
     ]
 
     incoming_damage = 0
@@ -327,7 +339,8 @@ def game_state_to_action(gameState: Game, priorities: Priority) -> str:
     system_prompt = build_system_prompt(data_prompt)
     user_prompt = "Please generate the next action based on the provided game state, following the specified format and including your explanation for your action. I can only do one action at a time."
 
-    response = call_claude_haiku(system_prompt, user_prompt)
+    # response = call_claude_haiku(system_prompt, user_prompt)
+    response = call_local_llm(system_prompt, user_prompt)
 
     logging.info(f"LLM Response:\n{response}")
 

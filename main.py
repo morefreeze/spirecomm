@@ -72,18 +72,18 @@ def copy_run_files(results, chosenClass, folder_name):
     logging.info("Creating runs folder in mod folder")
     try:
         os.makedirs(mod_runs_path, exist_ok=True)
-        logging.info("Created path: " + mod_runs_path, "continuing...")
+        logging.info(f"Created path: {mod_runs_path}, continuing...")
     except FileExistsError:
-        logging.error("Path already exists: " + mod_runs_path, "continuing...")
+        logging.warn(f"Path already exists: {mod_runs_path}, continuing...")
     except Exception as e:
         logging.error(f"Ran into a problem while creating the runs folder[{mod_runs_path}]: {e}")
 
     logging.info("Creating specific run folder in mod runs folder")
     try:
         os.makedirs(mod_specific_runs_path, exist_ok=True)
-        logging.info("Created path: " + mod_specific_runs_path, "continuing...")
+        logging.info(f"Created path: {mod_specific_runs_path}, continuing...")
     except FileExistsError:
-        logging.error("Path already exists: " + mod_specific_runs_path, "continuing...")
+        logging.warn(f"Path already exists: {mod_specific_runs_path}, continuing...")
     except Exception as e:
         logging.error(f"Ran into a problem while creating the specific runs folder[{mod_specific_runs_path}]: {e}")
 
